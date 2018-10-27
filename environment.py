@@ -10,8 +10,9 @@ ACTION_MEANING = {
 }
 
 class TTFE():
-    def __init__(self):
-        self.state = np.array([0] * 16, dtype=np.uint16).reshape(4, 4)
+    def __init__(self, size):
+        self.size = size
+        self.state = np.array([0] * (size * size), dtype=np.uint16).reshape(size, size)
         self.score = 0
 
         self.spawn()
@@ -39,7 +40,7 @@ class TTFE():
 
         for i, col in enumerate(self.state):
             self.state[i] = col[np.append(np.where(col != 0), np.where(col == 0))]
-            for j in range(3):
+            for j in range(self.size - 1):
                 if self.state[i][j] == self.state[i][j + 1]:
                     self.state[i][j] *= 2
                     self.state[i][j + 1]  = 0
@@ -71,7 +72,7 @@ class TTFE():
 
         return random.choice(actions)
 
-    def shape_state_for_train(self, panel):
+    def shape_state_for_train(self, panel=14):
         st = np.empty((0, 4, 4), dtype=np.float32)
         for i in range(panel):
             idx = np.where(self.state == 2 ** (i + 1))
@@ -79,6 +80,8 @@ class TTFE():
             layer[idx[0], idx[1]] = 1
             st = np.append(st, layer[np.newaxis, :, :].astype(np.float32), axis=0)
 
+        # st = np.array(self.state, dtype=np.float32)
+        # st = st[np.newaxis, :, :]
         return st
 
     def key_to_action(self, key):
@@ -112,13 +115,23 @@ class TTFE():
         print('\033[H\033[J') # clear
         import re
         print('SCORE: {:5d}'.format(self.score))
-        print(' ----------------------- ')
+
+        b_col = ' '
+        b_row = '|'
+        for i in range(self.size):
+            b_col += '----- '
+            b_row += '     |'
+
+        print(b_col)
         for col in self.state:
-            print('|{:5s}|{:5s}|{:5s}|{:5s}|'.format('', '', '', ''))
-            print('|{arr[0]:5s}|{arr[1]:5s}|{arr[2]:5s}|{arr[3]:5s}|'.format(
-                arr=[re.sub('^[0]', '', str(i)) for i in col]))
-            print('|{:5s}|{:5s}|{:5s}|{:5s}|'.format('', '', '', ''))
-            print(' ----------------------- ')
+            print(b_row)
+            num = '|'
+            arr = [re.sub('^[0]', '', str(i)) for i in col]
+            for a in arr:
+                num += '{:^5s}|'.format(a)
+            print(num)
+            print(b_row)
+            print(b_col)
 
 class RandomActor():
     def __init__(self, env):
@@ -130,20 +143,12 @@ class RandomActor():
         return self.env.get_available_action()
 
 if __name__ == '__main__':
-    env = TTFE()
-    # env.state = np.arange(1, 17, 1).reshape(4, 4)
-    # env.state = np.array(
-    # [
-    #     [0, 2, 0, 2],
-    #     [2, 0, 2, 0],
-    #     [0, 2, 0, 2],
-    #     [2, 0, 2, 0]
-    # ]) + 2
+    env = TTFE(4)
     env.show_CUI()
     while True:
+        print('>>', end='')
         a = input()
         if env.move(env.key_to_action(a)):
-            env.spawn()
             env.show_CUI()
         if env.isGameOver():
             print('You suck')
