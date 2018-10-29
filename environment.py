@@ -18,6 +18,9 @@ class TTFE():
         self.spawn()
         self.spawn()
 
+    def reset(self):
+        self.__init__(self.size)
+
     def spawn(self):
         empty = np.where(self.state == 0)
         r = random.randint(0, len(empty[0]) - 1)
@@ -73,16 +76,16 @@ class TTFE():
         return random.choice(actions)
 
     def shape_state_for_train(self, panel=14):
-        st = np.empty((0, 4, 4), dtype=np.float32)
-        for i in range(panel):
-            idx = np.where(self.state == 2 ** (i + 1))
-            layer = np.array([0] * 16).reshape(4, 4)
-            layer[idx[0], idx[1]] = 1
-            st = np.append(st, layer[np.newaxis, :, :].astype(np.float32), axis=0)
+        # st = np.empty((0, 4, 4), dtype=np.float32)
+        # for i in range(panel):
+        #     idx = np.where(self.state == 2 ** (i + 1))
+        #     layer = np.array([0] * 16).reshape(4, 4)
+        #     layer[idx[0], idx[1]] = 1
+        #     st = np.append(st, layer[np.newaxis, :, :].astype(np.float32), axis=0)
 
-        # st = np.array(self.state, dtype=np.float32)
-        # st = st[np.newaxis, :, :]
-        return st
+        st = np.array(self.state, dtype=np.float32)
+        st[np.where(st != 0)] = np.log2(st[np.where(st != 0)]) / 14
+        return st[np.newaxis, :, :]
 
     def key_to_action(self, key):
         KEY_TO_ACTION = {
@@ -129,9 +132,7 @@ class TTFE():
             arr = [re.sub('^[0]', '', str(i)) for i in col]
             for a in arr:
                 num += '{:^5s}|'.format(a)
-            print(num)
-            print(b_row)
-            print(b_col)
+            print('{}\n{}\n{}'.format(num, b_row, b_col))
 
 class RandomActor():
     def __init__(self, env):

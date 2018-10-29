@@ -15,10 +15,9 @@ class QFunction(chainer.Chain):
             self.fc2 = L.Linear(256, n_out)
 
     def __call__(self, x):
-        # (14, 4, 4) -> (32, 4, 4)
         h1 = F.relu(self.conv1(x))
         h2 = F.relu(self.conv2(h1))
-        h3 = self.fc1(h2)
-        h4 = self.fc2(h3)
+        h3 = F.relu(self.fc1(h2))
+        h4 = F.relu(self.fc2(h3))
 
         return chainerrl.action_value.DiscreteActionValue(h4)

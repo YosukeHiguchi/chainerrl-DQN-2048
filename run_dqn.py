@@ -33,8 +33,8 @@ def train():
     ra = RandomActor(env)
 
     # Set up Q-function
-    q_func = QFunction(ch_in=args.panel, ch_h=128, n_out=4)
-    # q_func = QFunction(ch_in=1, ch_h=128, n_out=4)
+    # q_func = QFunction(ch_in=args.panel, ch_h=128, n_out=4)
+    q_func = QFunction(ch_in=1, ch_h=128, n_out=4)
 
     if args.gpu >= 0:
         cuda.get_device_from_id(args.gpu).use()
@@ -42,13 +42,13 @@ def train():
         print('GPU {}\n'.format(args.gpu))
     xp = np if args.gpu < 0 else cuda.cupy
 
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.Adam(0.0005)
     optimizer.setup(q_func)
 
-    gamma = 0.95
+    gamma = 0.99
 
     explorer = chainerrl.explorers.LinearDecayEpsilonGreedy(
-        start_epsilon=0.3, end_epsilon=0.3, decay_steps=100000, random_action_func=ra.random_action_func)
+        start_epsilon=1.0, end_epsilon=0.3, decay_steps=100000, random_action_func=ra.random_action_func)
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
 
     agent = chainerrl.agents.DoubleDQN(
@@ -57,12 +57,14 @@ def train():
 
     # Training loop
     n_episodes = args.episode
+    snapshot_interval = 100
     max_steps = 500
     score = 0
     win = 0
     actions = {0: 0, 1: 0, 2: 0, 3: 0}
     for i in range(1, n_episodes + 1):
-        env.__init__(4)
+        env.reset()
+        score_bef = 0
         reward = 0
         t = 0
         while t < max_steps:
@@ -71,9 +73,12 @@ def train():
             actions[action] += 1
             env.move(action)
 
+            # reward = env.score - score_bef
+            # score_bef = env.score
+
             if args.target in env.state:
-                win += 1
                 reward = 1
+                win += 1
                 break
 
             if env.isGameOver():
@@ -86,13 +91,16 @@ def train():
         agent.stop_episode_and_train(st, reward, True)
 
         score += env.score
-        if i % 100 == 0:
+        if i % snapshot_interval == 0:
             print("ep: {}, rnd: {}, stats: {} eps: {}\n win: {}, score: {}, action: {}".format(
-                i, ra.cnt, agent.get_statistics(), agent.explorer.epsilon, win, score / 100, actions))
+                i, ra.cnt, agent.get_statistics(), agent.explorer.epsilon, win, score / snapshot_interval, actions))
             ra.cnt = 0
             score = 0
             win = 0
             actions = {0: 0, 1: 0, 2: 0, 3: 0}
+
+        if i % 5000 == 0:
+            agent.save('model/agent_' + str(i))
 
 if __name__ == '__main__':
     # This enables a ctr-C without triggering errors
