@@ -18,6 +18,6 @@ class QFunction(chainer.Chain):
         h1 = F.relu(self.conv1(x))
         h2 = F.relu(self.conv2(h1))
         h3 = F.relu(self.fc1(h2))
-        h4 = F.relu(self.fc2(h3))
+        h4 = self.fc2(h3)
 
         return chainerrl.action_value.DiscreteActionValue(h4)

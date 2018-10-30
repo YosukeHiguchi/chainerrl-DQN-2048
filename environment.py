@@ -75,17 +75,21 @@ class TTFE():
 
         return random.choice(actions)
 
-    def shape_state_for_train(self, panel=14):
-        # st = np.empty((0, 4, 4), dtype=np.float32)
-        # for i in range(panel):
-        #     idx = np.where(self.state == 2 ** (i + 1))
-        #     layer = np.array([0] * 16).reshape(4, 4)
-        #     layer[idx[0], idx[1]] = 1
-        #     st = np.append(st, layer[np.newaxis, :, :].astype(np.float32), axis=0)
+    def shape_state_for_train(self, feature_type):
+        if feature_type == 'normalized':
+            st = np.array(self.state, dtype=np.float32)
+            st[np.where(st != 0)] = np.log2(st[np.where(st != 0)]) / 14
+            st = st[np.newaxis, :, :]
 
-        st = np.array(self.state, dtype=np.float32)
-        st[np.where(st != 0)] = np.log2(st[np.where(st != 0)]) / 14
-        return st[np.newaxis, :, :]
+        elif feature_type == 'layered':
+            st = np.empty((0, 4, 4), dtype=np.float32)
+            for i in range(14):
+                idx = np.where(self.state == 2 ** (i + 1))
+                layer = np.array([0] * 16).reshape(4, 4)
+                layer[idx[0], idx[1]] = 1
+                st = np.append(st, layer[np.newaxis, :, :].astype(np.float32), axis=0)
+
+        return st
 
     def key_to_action(self, key):
         KEY_TO_ACTION = {
