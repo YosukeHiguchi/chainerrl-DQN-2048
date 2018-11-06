@@ -29,8 +29,13 @@ def train():
                 help='max steps')
     parser.add_argument('--feature_type', type=str, default='normalized',
                 help='shape kind of vectors to use')
+    parser.add_argument('--out', '-o', type=str, default='model',
+                help='path to the output directory')
     args = parser.parse_args()
     print(args)
+
+    if not os.path.exists(args.out):
+        os.makedirs(args.out)
 
     # Set up environment
     env = TTFE(args.grid_dim)
@@ -52,11 +57,12 @@ def train():
     optimizer.setup(q_func)
 
     s_eps = 1.0
-    e_eps = 0.3
+    e_eps = 0.1
+    decay = 1000000
     explorer = chainerrl.explorers.LinearDecayEpsilonGreedy(
-        start_epsilon=s_eps, end_epsilon=e_eps, decay_steps=100000, random_action_func=ra.random_action_func)
+        start_epsilon=s_eps, end_epsilon=e_eps, decay_steps=decay, random_action_func=ra.random_action_func)
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
-    print('epsilon: decays {} to {} in {} steps'.format(s_eps, e_eps, 100000))
+    print('epsilon: decays {} to {} in {} steps'.format(s_eps, e_eps, decay))
 
     gamma = 0.99
     agent = chainerrl.agents.DoubleDQN(
@@ -115,7 +121,7 @@ def train():
             actions = {0: 0, 1: 0, 2: 0, 3: 0}
 
         if i % snapshot_interval == 0:
-            agent.save('model/agent_' + str(i))
+            agent.save(args.out + '/agent_' + str(i))
 
 if __name__ == '__main__':
     # This enables a ctr-C without triggering errors
