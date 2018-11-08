@@ -28,7 +28,9 @@ class TTFE():
 
     def move(self, action):
         if not action in ACTION_MEANING.keys():
-            return False
+            return -1
+
+        reward = 0
 
         state_old = np.array(self.state)
 
@@ -48,6 +50,11 @@ class TTFE():
                     self.state[i][j] *= 2
                     self.state[i][j + 1]  = 0
                     self.score += self.state[i][j]
+
+                    # calculate reward
+                    if self.state[i][j] >= 8:
+                        reward += np.log2(self.state[i][j]) - 2
+
             self.state[i] = col[np.append(np.where(col != 0), np.where(col == 0))]
 
         if action == 0:
@@ -59,21 +66,13 @@ class TTFE():
         elif action == 3:
             self.state = self.state.transpose()[::-1]
 
-        if np.all(self.state == state_old):
-            return False
-        else:
+        if np.any(self.state != state_old):
             self.spawn()
-            return True
+
+        return reward
 
     def get_available_action(self):
-        actions = []
-        state_tmp = np.array(self.state)
-        for action in ACTION_MEANING.keys():
-            if self.move(action):
-                actions.append(action)
-            self.state = np.array(state_tmp)
-
-        return random.choice(actions)
+        return random.choice([a for a in ACTION_MEANING.keys()])
 
     def shape_state_for_train(self, feature_type):
         if feature_type == 'normalized':
@@ -111,7 +110,8 @@ class TTFE():
 
         state_tmp = np.array(self.state)
         for action in ACTION_MEANING.keys():
-            if self.move(action):
+            self.move(action)
+            if np.any(self.state != state_tmp):
                 self.state = np.array(state_tmp)
                 return False
             self.state = np.array(state_tmp)
@@ -153,8 +153,14 @@ if __name__ == '__main__':
     while True:
         print('>>', end='')
         a = input()
-        if env.move(env.key_to_action(a)):
+
+        reward = env.move(env.key_to_action(a))
+
+        if reward != -1:
             env.show_CUI()
+            # print(env.get_available_action())
+            # print(reward)
+
         if env.isGameOver():
             print('You suck')
             break

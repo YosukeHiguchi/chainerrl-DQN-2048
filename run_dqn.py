@@ -58,7 +58,7 @@ def train():
 
     s_eps = 1.0
     e_eps = 0.1
-    decay = 1000000
+    decay = (10 ** 6) * 4
     explorer = chainerrl.explorers.LinearDecayEpsilonGreedy(
         start_epsilon=s_eps, end_epsilon=e_eps, decay_steps=decay, random_action_func=ra.random_action_func)
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
@@ -88,16 +88,9 @@ def train():
             st = env.shape_state_for_train(args.feature_type)
             action = agent.act_and_train(st, reward)
             actions[action] += 1
-            env.move(action)
-
-            # if env.score != score_bef:
-            #     reward = 1
-            # else:
-            #     reward = 0
-            # score_bef = env.score
+            reward = env.move(action)
 
             if args.target in env.state:
-                reward = 1
                 win += 1
                 break
 
