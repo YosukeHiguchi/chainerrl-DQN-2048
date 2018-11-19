@@ -10,7 +10,7 @@ ACTION_MEANING = {
 }
 
 class TTFE():
-    def __init__(self, size):
+    def __init__(self, size=4):
         self.size = size
         self.state = np.array([0] * (size * size), dtype=np.uint16).reshape(size, size)
         self.score = 0
@@ -70,6 +70,16 @@ class TTFE():
             self.spawn()
 
         return reward
+
+    def isMovable(self, action):
+        state_tmp = np.array(self.state)
+        self.move(action)
+
+        if np.any(self.state != state_tmp):
+            self.state = np.array(state_tmp)
+            return True
+
+        return False
 
     def get_available_action(self):
         return random.choice([a for a in ACTION_MEANING.keys()])
@@ -151,15 +161,13 @@ if __name__ == '__main__':
     env = TTFE(4)
     env.show_CUI()
     while True:
-        print('>>', end='')
+        print('>> ', end='')
         a = input()
 
         reward = env.move(env.key_to_action(a))
 
         if reward != -1:
             env.show_CUI()
-            # print(env.get_available_action())
-            # print(reward)
 
         if env.isGameOver():
             print('You suck')
