@@ -63,6 +63,7 @@ def evaluate():
     n_episodes = args.episode
     win = 0
     score = 0
+    max_score = 0
     num = {'2': 0, '4': 0, '8': 0, '16': 0, '32': 0, '64': 0,
            '128': 0, '256': 0, '512': 0, '1024': 0, '2048': 0, '4096': 0}
     for i in range(1, n_episodes + 1):
@@ -82,9 +83,14 @@ def evaluate():
 
         for i in range(1, int(np.log2(np.max(env.state))) + 1):
             num[str(2 ** i)] += 1
-        score += env.score
 
-    print('win: {}, score: {}\n{}'.format(win, score / n_episodes, num))
+        score += env.score
+        max_score = env.score if max_score < env.score else max_score
+
+    for key in num.keys():
+        num[key] /= n_episodes
+
+    print('win: {}, score: {}, highest score: {}\n{}'.format(win, score / n_episodes, max_score, num))
 
 
 if __name__ == '__main__':

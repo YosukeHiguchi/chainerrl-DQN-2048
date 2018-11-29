@@ -46,14 +46,15 @@ class TTFE():
         for i, col in enumerate(self.state):
             self.state[i] = col[np.append(np.where(col != 0), np.where(col == 0))]
             for j in range(self.size - 1):
-                if self.state[i][j] == self.state[i][j + 1]:
+                if self.state[i][j] == self.state[i][j + 1] and self.state[i][j] != 0:
                     self.state[i][j] *= 2
                     self.state[i][j + 1]  = 0
                     self.score += self.state[i][j]
 
                     # calculate reward
                     if self.state[i][j] >= 8:
-                        reward += np.log2(self.state[i][j]) - 2
+                       reward += np.log2(self.state[i][j]) - 2
+                    # reward += np.log2(self.state[i][j]) / 14
 
             self.state[i] = col[np.append(np.where(col != 0), np.where(col == 0))]
 

@@ -75,18 +75,25 @@ def main():
         env.state = get_state()
         state = env.shape_state_for_train('normalized')
         choices = agent.act(state)
-        env.show_CUI()
+        # env.show_CUI()
         for action in choices:
             if env.isMovable(action):
                 driver.find_element_by_css_selector('body').send_keys(ACTIONS[action])
                 break
 
         if env.isGameOver():
+            env.show_CUI()
             break
 
-        time.sleep(0.1)
+        time.sleep(0.05)
 
-    driver.quit()
+    while True:
+        print('>> ', end='')
+        N = input()
+        if N == 'q':
+            print('See ya!')
+            driver.quit()
+            break
 
 if __name__ == '__main__':
     # This enables a ctr-C without triggering errors

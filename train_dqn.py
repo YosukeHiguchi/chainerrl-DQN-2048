@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 
 import matplotlib
 matplotlib.use('Agg')
@@ -19,7 +20,7 @@ def train():
     parser = argparse.ArgumentParser(description='Solve 2048 by DQN')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                 help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--episode', '-e', type=int, default=40000,
+    parser.add_argument('--episode', '-e', type=int, default=100000,
                 help='number of episodes to iterate')
     parser.add_argument('--target', '-t', type=int, default=2048,
                 help='target panel')
@@ -54,13 +55,16 @@ def train():
     optimizer = chainer.optimizers.Adam(0.0005)
     optimizer.setup(q_func)
 
-    s_eps = 1.0
-    e_eps = 0.1
-    decay = (10 ** 6) * 4
-    explorer = chainerrl.explorers.LinearDecayEpsilonGreedy(
-        start_epsilon=s_eps, end_epsilon=e_eps, decay_steps=decay, random_action_func=ra.random_action_func)
+    # s_eps = 1.0
+    # e_eps = 0.1
+    # decay = (10 ** 6) * 4
+    # explorer = chainerrl.explorers.LinearDecayEpsilonGreedy(
+    #     start_epsilon=s_eps, end_epsilon=e_eps, decay_steps=decay, random_action_func=ra.random_action_func)
+    # print('epsilon: decays {} to {} in {} steps'.format(s_eps, e_eps, decay))
+    explorer = chainerrl.explorers.ConstantEpsilonGreedy(
+        epsilon=1.0, random_action_func=ra.random_action_func)
+    print('original epsilon decay')
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
-    print('epsilon: decays {} to {} in {} steps'.format(s_eps, e_eps, decay))
 
     gamma = 0.99
     agent = chainerrl.agents.DoubleDQN(
@@ -79,9 +83,19 @@ def train():
     actions = {0: 0, 1: 0, 2: 0, 3: 0}
     R = 0
     for i in range(1, n_episodes + 1):
+        if i <= n_episodes / 2:
+            start_eps = 1.0 - (2.0 * (1.0 - 0.01) / args.episode) * (i - 1)
+        else:
+            start_eps = 0.01
+        end_eps = 1.0
+
         env.reset()
         reward = 0
-        for t in range(max_steps):
+
+        x_range = np.linspace(-5, 0, max_steps)
+        for x in x_range:
+            agent.explorer.epsilon = start_eps + (end_eps - start_eps) * math.exp(x)
+
             state = env.shape_state_for_train(args.feature_type)
             action = agent.act_and_train(state, reward)
             reward = env.move(action)
@@ -91,10 +105,9 @@ def train():
 
             if args.target in env.state:
                 win += 1
-                break
 
             if env.isGameOver():
-                reward = -10
+                reward = -1
                 R += reward
                 break
 
@@ -105,7 +118,7 @@ def train():
 
         if i % display_interval == 0:
             print("ep: {}, rnd: {}, stats: {}, eps: {}".format(
-                i, ra.cnt, agent.get_statistics(), agent.explorer.epsilon))
+                i, ra.cnt, agent.get_statistics(), start_eps))
             ra.cnt = 0
 
             print('win: {}, score: {}, action: {}, reward: {}'.format(
